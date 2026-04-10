@@ -110,3 +110,24 @@ async def scan_content(request: ScanRequest):
 
     logger.info(f"✅ Scan complete — verdict={response.verdict}, score={response.threat_score}")
     return response
+
+
+@router.get("s", response_model=list[ScanResponse], tags=["Scanner"])
+async def get_scan_history():
+    """
+    Fetch the last 20 scans from MongoDB Atlas, sorted newest first.
+    """
+    logger.info("📜 Fetching scan history from MongoDB...")
+    try:
+        db = mongodb.database
+        cursor = db.threat_events.find(
+            {},
+            {"_id": 0},  # Exclude Mongo's _id field
+        ).sort("scanned_at", -1).limit(20)
+
+        results = await cursor.to_list(length=20)
+        logger.info(f"📜 Returning {len(results)} historical scans.")
+        return results
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch history: {e}")
+        raise HTTPException(status_code=500, detail="Could not retrieve scan history.")

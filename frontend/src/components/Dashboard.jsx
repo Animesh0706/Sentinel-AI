@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, ShieldAlert, Activity, Shield } from 'lucide-react';
 import Alerts from './Alerts';
-import { mockHistory, checkHealth } from '../services/api';
+import { checkHealth, fetchScanHistory } from '../services/api';
 
 const Dashboard = () => {
-  const [scans, setScans] = useState(mockHistory);
-  const [selectedScan, setSelectedScan] = useState(mockHistory[0]);
+  const [scans, setScans] = useState([]);
+  const [selectedScan, setSelectedScan] = useState(null);
   const [health, setHealth] = useState({ status: "Connecting..." });
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      const history = await fetchScanHistory();
+      setScans(history);
+      if (history.length > 0) setSelectedScan(history[0]);
+    };
+    loadHistory();
+  }, []);
 
   useEffect(() => {
     const fetchHealth = async () => {

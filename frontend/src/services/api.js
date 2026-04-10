@@ -49,3 +49,13 @@ export const checkHealth = async () => {
     return { status: "offline" };
   }
 };
+
+export const fetchScanHistory = async () => {
+  try {
+    const res = await api.get('/scans');
+    return res.data;
+  } catch (err) {
+    console.warn("⚠️ Could not fetch scan history, using mock data:", err.message);
+    return mockHistory;
+  }
+};
