@@ -6,7 +6,9 @@ POST /scan endpoint with Redis caching and MongoDB persistence.
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+IST = timezone(timedelta(hours=5, minutes=30))
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
@@ -72,7 +74,7 @@ async def scan_content(request: ScanRequest):
         raise HTTPException(status_code=500, detail="AI analysis engine error.")
 
     # ── 3. Build response ────────────────────────────────────────────────
-    now = datetime.now(timezone.utc)
+    now = datetime.now(IST)
     response = ScanResponse(
         scan_id=scan_id,
         threat_score=result["threat_score"],

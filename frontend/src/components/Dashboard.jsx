@@ -85,7 +85,7 @@ const Dashboard = () => {
               <thead className="sticky top-0 z-10 bg-[#0d0f12]">
                 <tr className="text-gray-400 text-sm font-mono border-b border-gray-800 uppercase tracking-wider">
                   <th className="p-5 font-medium">Scan ID</th>
-                  <th className="p-5 font-medium">Time (UTC)</th>
+                  <th className="p-5 font-medium">Time (IST)</th>
                   <th className="p-5 font-medium">Type</th>
                   <th className="p-5 font-medium">Verdict</th>
                   <th className="p-5 font-medium text-right">Score</th>
@@ -101,7 +101,7 @@ const Dashboard = () => {
                     }`}
                   >
                     <td className="p-5 font-mono text-xs text-gray-300">{scan.scan_id.substring(0,8)}</td>
-                    <td className="p-5 text-sm text-gray-400 font-mono">{new Date(scan.scanned_at).toLocaleTimeString()}</td>
+                    <td className="p-5 text-sm text-gray-400 font-mono">{new Date(scan.scanned_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
                     <td className="p-5 text-sm text-gray-300 capitalize">{scan.content_type}</td>
                     <td className="p-5">{getVerdictBadge(scan.verdict)}</td>
                     <td className="p-5 text-right">
