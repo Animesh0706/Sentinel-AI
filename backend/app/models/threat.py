@@ -20,12 +20,22 @@ class ScanRequest(BaseModel):
     content_type: str = Field(
         default="text",
         description="Type of content being scanned.",
-        examples=["text", "url", "email"],
+        examples=["text", "url", "email", "message"],
     )
     source: Optional[str] = Field(
         default=None,
         description="Origin of the content (e.g., 'extension', 'api', 'dashboard').",
         examples=["extension"],
+    )
+    sender: Optional[str] = Field(
+        default=None,
+        description="Sender of the email or message, if applicable.",
+        examples=["security@fakebank.xyz", "+91 98765 43210"],
+    )
+    subject: Optional[str] = Field(
+        default=None,
+        description="Subject line of the email, if applicable.",
+        examples=["Urgent: Your Account Has Been Suspended"],
     )
 
 
@@ -50,3 +60,5 @@ class ScanResponse(BaseModel):
     )
     cached: bool = Field(default=False, description="Whether this result was served from cache.")
     scanned_at: datetime = Field(default_factory=datetime.utcnow, description="Timestamp of the scan.")
+    sender: Optional[str] = Field(default=None, description="Sender of the email or message, if applicable.")
+    subject: Optional[str] = Field(default=None, description="Subject line of the email, if applicable.")

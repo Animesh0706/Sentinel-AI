@@ -32,6 +32,25 @@ const Alerts = ({ alert }) => {
         </div>
       </div>
       
+      {/* Source Intelligence (Phase 5) */}
+      {(alert.sender || alert.subject) && (
+        <div className="mb-6 bg-[#181a24] rounded-xl p-4 border border-[#232733]">
+          <p className="text-[11px] font-mono tracking-widest text-gray-500 mb-3">SOURCE INTELLIGENCE</p>
+          {alert.sender && (
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-mono text-gray-500 uppercase w-16 shrink-0">Sender</span>
+              <span className="text-sm text-neon-cyan font-mono truncate">{alert.sender}</span>
+            </div>
+          )}
+          {alert.subject && (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-gray-500 uppercase w-16 shrink-0">Subject</span>
+              <span className="text-sm text-gray-300 font-mono truncate">{alert.subject}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Detected Vectors */}
       <div className="flex-1 overflow-y-auto pr-2">
         <p className="text-[11px] font-mono tracking-widest text-gray-500 mb-4 px-1">DETECTED VECTORS</p>

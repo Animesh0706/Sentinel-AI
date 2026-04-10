@@ -68,6 +68,8 @@ async def scan_content(request: ScanRequest):
         result = sentinel_brain.analyze_content(
             content=request.content,
             content_type=request.content_type,
+            sender=request.sender,
+            subject=request.subject,
         )
     except Exception as e:
         logger.error(f"❌ SentinelBrain failed: {e}")
@@ -83,6 +85,8 @@ async def scan_content(request: ScanRequest):
         explanations=[ThreatExplanation(**e) for e in result["explanations"]],
         cached=False,
         scanned_at=now,
+        sender=request.sender,
+        subject=request.subject,
     )
 
     # ── 4. Persist to MongoDB ────────────────────────────────────────────
@@ -90,6 +94,8 @@ async def scan_content(request: ScanRequest):
         doc = response.model_dump()
         doc["content_hash"] = content_key
         doc["source"] = request.source
+        doc["sender"] = request.sender
+        doc["subject"] = request.subject
         doc["scanned_at"] = now
 
         db = mongodb.database

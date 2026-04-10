@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, Activity, ShieldCheck, ShieldAlert, Shield, CheckCircle2 } from 'lucide-react';
+import { Search, Bell, Activity, ShieldCheck, ShieldAlert, Shield, CheckCircle2, Mail, MessageSquare, Globe } from 'lucide-react';
 import Alerts from './Alerts';
 import { checkHealth, fetchScanHistory } from '../services/api';
 
@@ -119,9 +119,9 @@ const Dashboard = () => {
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${isSelected ? `border-[${themeColor}] bg-[${themeColor}]/10` : 'border-[#232733] bg-[#0d0f14]'}`}>
-                      {isMalicious ? <ShieldAlert size={22} className={textClass} /> 
-                       : isSuspicious ? <ShieldAlert size={22} className={textClass} /> 
-                       : <ShieldCheck size={22} className={textClass} />}
+                      {scan.content_type === 'email' ? <Mail size={22} className={textClass} />
+                       : scan.content_type === 'message' ? <MessageSquare size={22} className={textClass} />
+                       : <Globe size={22} className={textClass} />}
                     </div>
                     <div>
                       <div className="flex items-center gap-3 mb-1">
