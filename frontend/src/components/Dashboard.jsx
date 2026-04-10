@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ShieldAlert, Activity, Shield } from 'lucide-react';
+import { Search, Bell, Activity, ShieldCheck, ShieldAlert, Shield, CheckCircle2 } from 'lucide-react';
 import Alerts from './Alerts';
 import { checkHealth, fetchScanHistory } from '../services/api';
+
+const Sparkline = ({ color }) => (
+  <svg width="60" height="20" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path 
+      d="M2 15C5 15 8 8 15 8C22 8 25 18 35 18C45 18 48 5 58 5" 
+      stroke={color} 
+      strokeWidth="1.5" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      className="drop-shadow-md"
+    />
+  </svg>
+);
 
 const Dashboard = () => {
   const [scans, setScans] = useState([]);
@@ -27,112 +40,132 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const getVerdictBadge = (verdict) => {
-    switch (verdict) {
-      case 'Safe':
-        return <span className="px-3 py-1 text-xs font-bold rounded-full bg-neon-green/10 text-neon-green border border-neon-green/30">Safe</span>;
-      case 'Suspicious':
-        return <span className="px-3 py-1 text-xs font-bold rounded-full bg-neon-yellow/10 text-neon-yellow border border-neon-yellow/30">Suspicious</span>;
-      case 'Malicious':
-        return <span className="px-3 py-1 text-xs font-bold rounded-full bg-neon-red/10 text-neon-red border border-neon-red/30 animate-pulse shadow-[0_0_8px_rgba(255,51,102,0.5)]">Malicious</span>;
-      default:
-        return <span className="px-3 py-1 text-xs font-bold rounded-full bg-gray-500/10 text-gray-400 border border-gray-500/30">Unknown</span>;
-    }
-  };
-
-  const getHealthStatus = () => {
+  const getSystemStatus = () => {
     if (health.status === 'online') {
       return (
-        <div className="flex items-center gap-2 text-neon-green">
-          <Activity size={16} className="animate-pulse" />
-          <span className="font-mono text-sm tracking-widest text-[#00ff66] drop-shadow-[0_0_5px_rgba(0,255,102,0.8)]">SYSTEM: SECURE</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#00ff88]/20 bg-[#00ff88]/5">
+          <div className="w-2 h-2 rounded-full bg-neon-green shadow-sm animate-pulse"></div>
+          <span className="text-[10px] uppercase font-mono tracking-widest text-[#00ff88]">SYS ONLINE</span>
         </div>
       );
     }
     return (
-      <div className="flex items-center gap-2 text-neon-red">
-        <Activity size={16} />
-        <span className="font-mono text-sm tracking-widest text-[#ff3366] drop-shadow-[0_0_5px_rgba(255,51,102,0.8)]">SYSTEM: OFFLINE</span>
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-neon-red/30 bg-neon-red/5">
+        <div className="w-2 h-2 rounded-full bg-neon-red shadow-sm"></div>
+        <span className="text-[10px] uppercase font-mono tracking-widest text-neon-red">SYS OFFLINE</span>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-cyber-bg text-gray-200 p-6 font-sans selection:bg-neon-cyan/30">
-      {/* Header */}
-      <header className="flex justify-between items-center mb-10 border-b border-gray-800 pb-6 px-2">
-        <div className="flex items-center gap-3">
-          <Shield className="text-neon-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.8)]" size={36} />
-          <h1 className="text-4xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-purple drop-shadow-lg">
-            SENTINEL<span className="font-light">AI</span>
-          </h1>
+    <div className="p-8 flex flex-col h-full">
+      {/* Top Navigation / Header */}
+      <div className="flex justify-between items-start mb-10">
+        <div>
+          <h1 className="text-[28px] font-bold tracking-wide text-white mb-1">Security Intelligence</h1>
+          <p className="text-sm text-gray-500 font-sans">Real-time threat detection network overview</p>
         </div>
-        <div className="bg-cyber-card px-5 py-3 rounded-full border border-gray-800 shadow-[0_0_15px_rgba(0,255,102,0.05)]">
-          {getHealthStatus()}
+        
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+            <input 
+              type="text" 
+              placeholder="Search threats, IDs..." 
+              className="bg-[#0f1118] border border-[#232733] text-sm text-white rounded-full pl-10 pr-4 py-2 w-64 focus:outline-none focus:border-neon-cyan/50 transition-colors placeholder:text-gray-600"
+            />
+          </div>
+          <div className="w-10 h-10 rounded-full border border-[#232733] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer transition-colors relative">
+            <Bell size={18} />
+            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-neon-red border-2 border-cyber-bg"></div>
+          </div>
+          {getSystemStatus()}
         </div>
-      </header>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Table */}
-        <div className="lg:col-span-2 bg-cyber-card rounded-xl border border-gray-800 overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col h-[70vh]">
-          <div className="p-5 border-b border-gray-800 bg-gray-900/50 flex justify-between items-center">
-            <h2 className="text-xl font-mono font-semibold text-gray-100 items-center flex gap-3">
-              <Activity size={20} className="text-neon-cyan" /> Live Threat Feed
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:gap-8 gap-y-8">
+        
+        {/* Left Column: Live Event Stream */}
+        <div className="flex flex-col h-full min-h-0">
+          <div className="flex justify-between items-center mb-4 px-1">
+            <h2 className="text-[15px] font-semibold text-gray-200 flex items-center gap-2">
+              <Activity size={18} className="text-neon-cyan" />
+              Live Event Stream
+            </h2>
+            <div className="px-2 py-1 rounded bg-[#181a24] border border-[#232733] text-[10px] font-mono text-gray-400">
+              {scans.length} events processing
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+            {scans.map((scan) => {
+              const isSelected = selectedScan?.scan_id === scan.scan_id;
+              const isMalicious = scan.verdict === 'Malicious';
+              const isSuspicious = scan.verdict === 'Suspicious';
+              
+              const themeColor = isMalicious ? '#ff3355' : isSuspicious ? '#ffb800' : '#00ff88';
+              const textClass = isMalicious ? 'text-neon-red' : isSuspicious ? 'text-neon-yellow' : 'text-neon-green';
+              const glowClass = isSelected 
+                ? isMalicious ? 'border-neon-red shadow-[0_0_15px_rgba(255,51,85,0.15)] bg-[#1a151b]' 
+                : isSuspicious ? 'border-neon-yellow shadow-[0_0_15px_rgba(255,184,0,0.1)] bg-[#1a1816]' 
+                : 'border-neon-green shadow-[0_0_15px_rgba(0,255,136,0.1)] bg-[#11191a]'
+                : 'border-[#232733] bg-[#12141c] hover:border-gray-600/50 hover:bg-[#151821]';
+              
+              return (
+                <div 
+                  key={scan.scan_id}
+                  onClick={() => setSelectedScan(scan)}
+                  className={`w-full rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all duration-200 border ${glowClass}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${isSelected ? `border-[${themeColor}] bg-[${themeColor}]/10` : 'border-[#232733] bg-[#0d0f14]'}`}>
+                      {isMalicious ? <ShieldAlert size={22} className={textClass} /> 
+                       : isSuspicious ? <ShieldAlert size={22} className={textClass} /> 
+                       : <ShieldCheck size={22} className={textClass} />}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className={`text-[15px] font-bold tracking-widest uppercase ${textClass}`}>
+                          {scan.verdict}
+                        </span>
+                        <div className="px-1.5 py-0.5 rounded bg-[#2a2d3b] text-[10px] font-mono text-gray-300">
+                          {(scan.threat_score * 100).toFixed(0)} <span className="text-gray-500">/ 100</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-[11px] font-mono text-gray-500 uppercase tracking-wide">
+                        <span className="flex items-center gap-1.5"><Shield size={12}/> ID: {scan.scan_id.substring(0,8)}</span>
+                        <span className="flex items-center gap-1.5"><Activity size={12}/> {scan.content_type}</span>
+                        <span>{new Date(scan.scanned_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="opacity-70 mr-2">
+                     <Sparkline color={themeColor} />
+                  </div>
+                </div>
+              );
+            })}
+            
+            {scans.length === 0 && (
+              <div className="w-full text-center py-12 border border-dashed border-[#232733] rounded-2xl text-gray-500 font-mono text-sm">
+                No threat events processing.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: XAI Diagnostics */}
+        <div className="flex flex-col h-full min-h-0">
+          <div className="flex justify-between items-center mb-4 px-1">
+            <h2 className="text-[15px] font-semibold text-gray-200 flex items-center gap-2">
+              <span className="text-neon-purple text-lg pt-0.5">ϟ</span>
+              XAI Diagnostics
             </h2>
           </div>
-          <div className="overflow-y-auto flex-1">
-            <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 z-10 bg-[#0d0f12]">
-                <tr className="text-gray-400 text-sm font-mono border-b border-gray-800 uppercase tracking-wider">
-                  <th className="p-5 font-medium">Scan ID</th>
-                  <th className="p-5 font-medium">Time (IST)</th>
-                  <th className="p-5 font-medium">Type</th>
-                  <th className="p-5 font-medium">Verdict</th>
-                  <th className="p-5 font-medium text-right">Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {scans.map((scan) => (
-                  <tr 
-                    key={scan.scan_id} 
-                    onClick={() => setSelectedScan(scan)}
-                    className={`cursor-pointer border-b border-gray-800/30 hover:bg-gray-800/40 transition-all duration-200 ${
-                      selectedScan?.scan_id === scan.scan_id ? 'bg-gray-800/60 border-l-4 border-l-neon-cyan' : 'border-l-4 border-l-transparent'
-                    }`}
-                  >
-                    <td className="p-5 font-mono text-xs text-gray-300">{scan.scan_id.substring(0,8)}</td>
-                    <td className="p-5 text-sm text-gray-400 font-mono">{new Date(scan.scanned_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
-                    <td className="p-5 text-sm text-gray-300 capitalize">{scan.content_type}</td>
-                    <td className="p-5">{getVerdictBadge(scan.verdict)}</td>
-                    <td className="p-5 text-right">
-                      <div className="flex items-center justify-end gap-3 text-lg font-mono">
-                        <span className={scan.verdict === 'Malicious' ? 'text-neon-red drop-shadow w-8 text-right' : 'w-8 text-right'}>
-                          {(scan.threat_score * 100).toFixed(0)}
-                        </span>
-                        {scan.verdict === 'Safe' ? (
-                          <ShieldCheck size={20} className="text-neon-green" />
-                        ) : (
-                           <ShieldAlert size={20} className={scan.verdict === 'Malicious' ? 'text-neon-red' : 'text-neon-yellow'} />
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          
+          <div className="flex-1 min-h-0">
+             <Alerts alert={selectedScan} />
           </div>
-        </div>
-
-        {/* Side Panel (XAI) */}
-        <div className="lg:col-span-1 h-[70vh]">
-          {selectedScan ? (
-            <Alerts alert={selectedScan} />
-          ) : (
-            <div className="bg-cyber-card border border-gray-800 rounded-xl p-6 h-full flex flex-col items-center justify-center text-gray-500 font-mono text-sm opacity-50">
-              <Shield size={48} className="mb-4" />
-              <span>Select a scan to view XAI details.</span>
-            </div>
-          )}
         </div>
       </div>
     </div>
