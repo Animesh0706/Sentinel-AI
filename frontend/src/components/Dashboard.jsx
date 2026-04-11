@@ -20,7 +20,6 @@ const Sparkline = ({ color }) => (
 const Dashboard = () => {
   const [scans, setScans] = useState([]);
   const [selectedScan, setSelectedScan] = useState(null);
-  const [health, setHealth] = useState({ status: "Connecting..." });
   const [integrityStatus, setIntegrityStatus] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
 
@@ -33,32 +32,7 @@ const Dashboard = () => {
     loadHistory();
   }, []);
 
-  useEffect(() => {
-    const fetchHealth = async () => {
-      const data = await checkHealth();
-      setHealth(data);
-    };
-    fetchHealth();
-    const interval = setInterval(fetchHealth, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
-  const getSystemStatus = () => {
-    if (health.status === 'online') {
-      return (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#00ff88]/20 bg-[#00ff88]/5">
-          <div className="w-2 h-2 rounded-full bg-neon-green shadow-sm animate-pulse"></div>
-          <span className="text-[10px] uppercase font-mono tracking-widest text-[#00ff88]">SYS ONLINE</span>
-        </div>
-      );
-    }
-    return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-neon-red/30 bg-neon-red/5">
-        <div className="w-2 h-2 rounded-full bg-neon-red shadow-sm"></div>
-        <span className="text-[10px] uppercase font-mono tracking-widest text-neon-red">SYS OFFLINE</span>
-      </div>
-    );
-  };
 
   return (
     <div className="p-8 flex flex-col h-full">
@@ -82,7 +56,6 @@ const Dashboard = () => {
             <Bell size={18} />
             <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-neon-red border-2 border-cyber-bg"></div>
           </div>
-          {getSystemStatus()}
         </div>
       </div>
 

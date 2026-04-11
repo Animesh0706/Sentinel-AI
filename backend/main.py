@@ -80,14 +80,16 @@ app.include_router(chatbot_router, prefix="/api/v1")
 @app.get("/health", tags=["System"])
 async def health_check():
     """
-    Ping both MongoDB and Redis and return their connection status.
-    Target response: {"status": "online", "mongodb": "connected", "redis": "connected"}
+    Ping MongoDB, Redis, and check AI Model.
+    Target response: {"status": "online", "mongodb": "connected", "redis": "connected", "ai_engine": "online"}
     """
     mongo_ok = await mongodb.ping()
     redis_ok = await redis_cache.ping()
+    ai_ok = getattr(app.state, "model_pipeline", None) is not None
 
     return {
         "status": "online" if (mongo_ok and redis_ok) else "degraded",
         "mongodb": "connected" if mongo_ok else "disconnected",
         "redis": "connected" if redis_ok else "disconnected",
+        "ai_engine": "online" if ai_ok else "offline",
     }

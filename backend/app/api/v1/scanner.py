@@ -7,6 +7,8 @@ POST /scan endpoint with Redis caching and MongoDB persistence.
 import hashlib
 import json
 import logging
+import re
+import asyncio
 from datetime import datetime, timezone, timedelta
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -16,6 +18,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 from app.core.ai_engine import sentinel_brain
 from app.core.security import calculate_integrity_hash
+from app.core.threat_intel import check_google_safe_browsing, check_virustotal
 from app.db.mongodb import mongodb
 from app.db.redis_cache import redis_cache
 from app.models.threat import ScanRequest, ScanResponse, ThreatExplanation
@@ -64,34 +67,75 @@ async def scan_content(request: ScanRequest, req: Request):
         cached_data["cached"] = True
         return ScanResponse(**cached_data)
 
-    logger.info(f"💨 Cache MISS — invoking SentinelBrain hybrid engine...")
+    logger.info(f"💨 Cache MISS — Checking Global Intel (Phase 8)...")
 
-    # ── 2. Hybrid AI analysis (heuristic × 0.3 + ML × 0.7) ──────────────
-    model_pipeline = getattr(req.app.state, "model_pipeline", None)
-    ml_confidence = None
+    # ── 1.5 Global Threat Intelligence (Phase 8) ─────────────────────────
+    url_pattern = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
+    urls = url_pattern.findall(request.content)
+    
+    external_exps = []
+    if urls:
+        logger.info(f"🌍 Found {len(urls)} URLs. Fusing API logic...")
+        tasks = [check_google_safe_browsing(urls)]
+        for u in urls[:3]:  # Check up to 3 URLs with VT
+            tasks.append(check_virustotal(u))
+            
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        gsb_malicious = results[0] if not isinstance(results[0], Exception) else []
+        vt_results = results[1:]
+        
+        if gsb_malicious:
+            external_exps.append({
+                "indicator": "Google Safe Browsing Match",
+                "weight": 1.0,
+                "detail": f"URLs flagged as malicious by Google: {gsb_malicious}"
+            })
+            
+        for i, vt_res in enumerate(vt_results):
+            if not isinstance(vt_res, Exception) and isinstance(vt_res, dict):
+                if vt_res.get("malicious", 0) > 0:
+                    external_exps.append({
+                        "indicator": "VirusTotal Match",
+                        "weight": 1.0,
+                        "detail": f"URL '{urls[i]}' flagged by {vt_res.get('malicious')} engines on VirusTotal."
+                    })
 
-    try:
-        if model_pipeline:
-            result = sentinel_brain.hybrid_analyze(
-                content=request.content,
-                model_pipeline=model_pipeline,
-                content_type=request.content_type,
-                sender=request.sender,
-                subject=request.subject,
-            )
-            ml_confidence = result.get("ml_confidence")
-        else:
-            # Fallback: heuristic-only if model didn't load
-            logger.warning("⚠️ ML model not available — using heuristic-only scoring.")
-            result = sentinel_brain.analyze_content(
-                content=request.content,
-                content_type=request.content_type,
-                sender=request.sender,
-                subject=request.subject,
-            )
-    except Exception as e:
-        logger.error(f"❌ SentinelBrain failed: {e}")
-        raise HTTPException(status_code=500, detail="AI analysis engine error.")
+    if external_exps:
+        logger.warning(f"🚨 Global Intel flagged threat. Short-circuiting ML.")
+        result = {
+            "threat_score": 1.0,
+            "verdict": "Malicious",
+            "explanations": external_exps
+        }
+        ml_confidence = None
+    else:
+        # ── 2. Hybrid AI analysis (heuristic × 0.3 + ML × 0.7) ──────────────
+        model_pipeline = getattr(req.app.state, "model_pipeline", None)
+        ml_confidence = None
+    
+        try:
+            if model_pipeline:
+                result = sentinel_brain.hybrid_analyze(
+                    content=request.content,
+                    model_pipeline=model_pipeline,
+                    content_type=request.content_type,
+                    sender=request.sender,
+                    subject=request.subject,
+                )
+                ml_confidence = result.get("ml_confidence")
+            else:
+                # Fallback: heuristic-only if model didn't load
+                logger.warning("⚠️ ML model not available — using heuristic-only scoring.")
+                result = sentinel_brain.analyze_content(
+                    content=request.content,
+                    content_type=request.content_type,
+                    sender=request.sender,
+                    subject=request.subject,
+                )
+        except Exception as e:
+            logger.error(f"❌ SentinelBrain failed: {e}")
+            raise HTTPException(status_code=500, detail="AI analysis engine error.")
 
     # ── 3. Build response ────────────────────────────────────────────────
     now = datetime.now(IST)
