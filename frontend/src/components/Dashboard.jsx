@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, Activity, ShieldCheck, ShieldAlert, Shield, CheckCircle2, Mail, MessageSquare, Globe } from 'lucide-react';
+import { Search, Bell, Activity, ShieldCheck, ShieldAlert, Shield, CheckCircle2, Mail, MessageSquare, Globe, Fingerprint } from 'lucide-react';
 import Alerts from './Alerts';
-import { checkHealth, fetchScanHistory } from '../services/api';
+import { checkHealth, fetchScanHistory, verifyIntegrity } from '../services/api';
 
 const Sparkline = ({ color }) => (
   <svg width="60" height="20" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,6 +20,7 @@ const Dashboard = () => {
   const [scans, setScans] = useState([]);
   const [selectedScan, setSelectedScan] = useState(null);
   const [health, setHealth] = useState({ status: "Connecting..." });
+  const [integrityStatus, setIntegrityStatus] = useState(null);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -114,7 +115,13 @@ const Dashboard = () => {
               return (
                 <div 
                   key={scan.scan_id}
-                  onClick={() => setSelectedScan(scan)}
+                  onClick={() => {
+                    setSelectedScan(scan);
+                    setIntegrityStatus(null);
+                    if (scan.integrity_hash) {
+                      verifyIntegrity(scan.scan_id).then(setIntegrityStatus);
+                    }
+                  }}
                   className={`w-full rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all duration-200 border ${glowClass}`}
                 >
                   <div className="flex items-center gap-4">
@@ -139,8 +146,11 @@ const Dashboard = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="opacity-70 mr-2">
+                  <div className="flex items-center gap-2 mr-2">
                      <Sparkline color={themeColor} />
+                     {scan.integrity_hash && (
+                       <Fingerprint size={14} className="text-neon-green/50" />
+                     )}
                   </div>
                 </div>
               );
@@ -164,7 +174,7 @@ const Dashboard = () => {
           </div>
           
           <div className="flex-1 min-h-0">
-             <Alerts alert={selectedScan} />
+             <Alerts alert={selectedScan} integrityStatus={integrityStatus} />
           </div>
         </div>
       </div>

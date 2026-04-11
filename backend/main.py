@@ -1,6 +1,6 @@
 """
 Sentinel-AI — Main Application Entry Point
-Uses FastAPI lifespan to manage async DB connections.
+Phase 6: Loads BERT-tiny model on startup via lifespan.
 """
 
 import logging
@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.db.mongodb import mongodb
 from app.db.redis_cache import redis_cache
 from app.api.v1.scanner import router as scanner_router
+from app.api.v1.integrity import router as integrity_router
 
 # ── Logging config ───────────────────────────────────────────────────────
 logging.basicConfig(
@@ -24,10 +25,28 @@ logger = logging.getLogger("sentinel.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: connect to MongoDB Atlas & Redis. Shutdown: disconnect."""
+    """
+    Startup:
+      1. Connect to MongoDB Atlas & Redis.
+      2. Load BERT-tiny ML model into app.state (one-time).
+    Shutdown:
+      3. Disconnect databases.
+    """
     logger.info(f"🚀 Starting {settings.APP_NAME}...")
     await mongodb.connect()
     await redis_cache.connect()
+
+    # ── Load BERT-tiny model (Phase 6) ───────────────────────────────────
+    logger.info("🤖 Loading BERT-tiny ML model (NumPy inference)...")
+    try:
+        from app.core.ml_model import load_bert_tiny
+        model_pipeline = load_bert_tiny()
+        app.state.model_pipeline = model_pipeline
+        logger.info("✅ BERT-tiny model loaded successfully (pure NumPy).")
+    except Exception as e:
+        logger.warning(f"⚠️ Could not load ML model (will use heuristic-only): {e}")
+        app.state.model_pipeline = None
+
     logger.info(f"✅ {settings.APP_NAME} is online.")
     yield
     logger.info(f"🛑 Shutting down {settings.APP_NAME}...")
@@ -38,7 +57,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     description="Cybersecurity threat detection platform — Phishing, Deepfakes, Misinformation.",
-    version="0.2.0",
+    version="0.6.0",
     lifespan=lifespan,
 )
 
@@ -51,9 +70,9 @@ app.add_middleware(
 )
 
 
-
 # ── Register routers ────────────────────────────────────────────────────
 app.include_router(scanner_router, prefix="/api/v1")
+app.include_router(integrity_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["System"])

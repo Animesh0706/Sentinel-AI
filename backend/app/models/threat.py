@@ -1,6 +1,7 @@
 """
 Sentinel-AI — Pydantic Schemas for Threat Scanning
 Defines the API contract for the /scan endpoint.
+Phase 6: Added ml_confidence and integrity_hash fields.
 """
 
 from pydantic import BaseModel, Field
@@ -62,3 +63,12 @@ class ScanResponse(BaseModel):
     scanned_at: datetime = Field(default_factory=datetime.utcnow, description="Timestamp of the scan.")
     sender: Optional[str] = Field(default=None, description="Sender of the email or message, if applicable.")
     subject: Optional[str] = Field(default=None, description="Subject line of the email, if applicable.")
+    ml_confidence: Optional[float] = Field(
+        default=None,
+        ge=0, le=1,
+        description="ML model's spam/threat confidence (0 = ham, 1 = spam). Phase 6 hybrid scoring.",
+    )
+    integrity_hash: Optional[str] = Field(
+        default=None,
+        description="SHA-256 integrity hash for CIA tamper detection.",
+    )

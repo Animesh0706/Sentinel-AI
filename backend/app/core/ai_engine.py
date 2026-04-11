@@ -1,6 +1,6 @@
 """
-Sentinel-AI — Mock AI Engine (SentinelBrain)
-Phase 5: Omni-Sensor upgrade with platform-specific heuristics + Explainable AI output.
+Sentinel-AI — Hybrid AI Engine (SentinelBrain)
+Phase 6: Combines heuristic analysis (30%) with BERT-tiny ML classification (70%).
 """
 
 import re
@@ -11,8 +11,9 @@ logger = logging.getLogger("sentinel.brain")
 
 class SentinelBrain:
     """
-    Mock intelligence engine that simulates multi-modal threat detection.
-    Uses regex patterns and keyword dictionaries to produce XAI-style results.
+    Hybrid intelligence engine combining:
+    - Rule-based heuristic scanning (urgency, social engineering, URLs, etc.)
+    - BERT-tiny ML classification for semantic spam/threat detection
     """
 
     # ── Phishing indicators ──────────────────────────────────────────────
@@ -46,11 +47,7 @@ class SentinelBrain:
         "banned video", "censored",
     ]
 
-    # ══════════════════════════════════════════════════════════════════════
     # ── OmniHeuristics: Platform-Specific Rules (Phase 5) ────────────────
-    # ══════════════════════════════════════════════════════════════════════
-
-    # Email-specific threat patterns (Gmail scraper)
     EMAIL_THREAT_KEYWORDS = [
         "account suspension", "verify identity", "urgent action required",
         "password expired", "unauthorized login", "confirm your payment",
@@ -58,7 +55,6 @@ class SentinelBrain:
         "billing information", "account terminated", "final warning",
     ]
 
-    # Messaging-specific threat patterns (WhatsApp scraper)
     MESSAGE_THREAT_KEYWORDS = [
         "otp", "send money", "qr code", "upi", "bank transfer",
         "share code", "pin number", "payment link", "google pay",
@@ -69,19 +65,11 @@ class SentinelBrain:
     def analyze_content(self, content: str, content_type: str = "text",
                         sender: str = None, subject: str = None) -> dict:
         """
-        Analyze content for threats and return an XAI result dict.
-
-        Args:
-            content: The raw text to analyze.
-            content_type: One of "text", "url", "email", "message".
-            sender: Optional sender address/number.
-            subject: Optional email subject line.
-
-        Returns:
-            dict with keys: threat_score, verdict, explanations[]
+        Pure heuristic analysis — returns threat_score, verdict, explanations.
+        This method is UNTOUCHED from Phase 5.
         """
         logger.info("═" * 60)
-        logger.info("🧠 SentinelBrain — ANALYSIS STARTED")
+        logger.info("🧠 SentinelBrain — HEURISTIC ANALYSIS")
         logger.info(f"   Content type : {content_type}")
         logger.info(f"   Content len  : {len(content)} chars")
         if sender:
@@ -92,118 +80,101 @@ class SentinelBrain:
         logger.info("═" * 60)
 
         explanations: list[dict] = []
-
-        # Combine all searchable text (content + subject for emails)
         searchable = content.lower()
         if subject:
             searchable = f"{subject.lower()} {searchable}"
 
-        # ── 1. Urgency scan ──────────────────────────────────────────────
+        # ── 1. Urgency scan
         urgency_hits = [kw for kw in self.URGENCY_KEYWORDS if kw in searchable]
         if urgency_hits:
             weight = min(0.35, len(urgency_hits) * 0.12)
-            explanation = {
+            explanations.append({
                 "indicator": "Urgency language",
                 "weight": round(weight, 2),
                 "detail": f"Detected {len(urgency_hits)} urgency trigger(s): {urgency_hits}",
-            }
-            explanations.append(explanation)
-            logger.info(f"   🔴 URGENCY    → {explanation['detail']} [+{weight:.2f}]")
+            })
+            logger.info(f"   🔴 URGENCY    → {len(urgency_hits)} hits [+{weight:.2f}]")
 
-        # ── 2. Social engineering scan ───────────────────────────────────
+        # ── 2. Social engineering scan
         social_hits = [kw for kw in self.SOCIAL_ENGINEERING_KEYWORDS if kw in searchable]
         if social_hits:
             weight = min(0.30, len(social_hits) * 0.10)
-            explanation = {
+            explanations.append({
                 "indicator": "Social engineering",
                 "weight": round(weight, 2),
                 "detail": f"Detected {len(social_hits)} manipulation phrase(s): {social_hits}",
-            }
-            explanations.append(explanation)
-            logger.info(f"   🟠 SOCIAL ENG → {explanation['detail']} [+{weight:.2f}]")
+            })
+            logger.info(f"   🟠 SOCIAL ENG → {len(social_hits)} hits [+{weight:.2f}]")
 
-        # ── 3. Suspicious URL scan ───────────────────────────────────────
+        # ── 3. Suspicious URL scan
         url_matches = self.SUSPICIOUS_URL_PATTERN.findall(content)
         if url_matches:
             weight = min(0.40, len(url_matches) * 0.20)
-            explanation = {
+            explanations.append({
                 "indicator": "Suspicious URL",
                 "weight": round(weight, 2),
                 "detail": f"Found {len(url_matches)} suspicious URL(s): {url_matches[:3]}",
-            }
-            explanations.append(explanation)
-            logger.info(f"   🔗 SUSP URL   → {explanation['detail']} [+{weight:.2f}]")
+            })
+            logger.info(f"   🔗 SUSP URL   → {len(url_matches)} hits [+{weight:.2f}]")
 
-        # ── 4. Obfuscation scan ──────────────────────────────────────────
+        # ── 4. Obfuscation scan
         for pattern, label in self.OBFUSCATION_PATTERNS:
             if pattern.search(content):
-                weight = 0.15
-                explanation = {
+                explanations.append({
                     "indicator": "Obfuscation technique",
-                    "weight": weight,
+                    "weight": 0.15,
                     "detail": label,
-                }
-                explanations.append(explanation)
-                logger.info(f"   🕵️ OBFUSCATE  → {label} [+{weight:.2f}]")
+                })
+                logger.info(f"   🕵️ OBFUSCATE  → {label} [+0.15]")
 
-        # ── 5. Misinformation scan ───────────────────────────────────────
+        # ── 5. Misinformation scan
         misinfo_hits = [kw for kw in self.MISINFO_KEYWORDS if kw in searchable]
         if misinfo_hits:
             weight = min(0.25, len(misinfo_hits) * 0.10)
-            explanation = {
+            explanations.append({
                 "indicator": "Misinformation language",
                 "weight": round(weight, 2),
                 "detail": f"Detected {len(misinfo_hits)} misinformation cue(s): {misinfo_hits}",
-            }
-            explanations.append(explanation)
-            logger.info(f"   📰 MISINFO    → {explanation['detail']} [+{weight:.2f}]")
+            })
+            logger.info(f"   📰 MISINFO    → {len(misinfo_hits)} hits [+{weight:.2f}]")
 
-        # ══════════════════════════════════════════════════════════════════
-        # ── 6. OmniHeuristics: Email-specific scan ───────────────────────
-        # ══════════════════════════════════════════════════════════════════
+        # ── 6. OmniHeuristics: Email-specific scan
         if content_type == "email":
             email_hits = [kw for kw in self.EMAIL_THREAT_KEYWORDS if kw in searchable]
             if email_hits:
                 weight = min(0.35, len(email_hits) * 0.12)
-                explanation = {
+                explanations.append({
                     "indicator": "Email threat pattern",
                     "weight": round(weight, 2),
                     "detail": f"Detected {len(email_hits)} email-specific threat(s): {email_hits}",
-                }
-                explanations.append(explanation)
-                logger.info(f"   📧 EMAIL THR  → {explanation['detail']} [+{weight:.2f}]")
+                })
+                logger.info(f"   📧 EMAIL THR  → {len(email_hits)} hits [+{weight:.2f}]")
 
-            # Suspicious sender domain check
             if sender and sender.count("@") == 1:
                 domain = sender.split("@")[1].lower()
                 trusted_domains = ["google.com", "gmail.com", "outlook.com", "microsoft.com",
                                    "apple.com", "amazon.com", "paypal.com", "yahoo.com"]
                 if domain not in trusted_domains and any(kw in searchable for kw in ["verify", "suspend", "urgent", "password"]):
-                    weight = 0.20
-                    explanation = {
+                    explanations.append({
                         "indicator": "Untrusted sender",
-                        "weight": weight,
+                        "weight": 0.20,
                         "detail": f"Sender domain '{domain}' is not in the trusted list, combined with suspicious keywords.",
-                    }
-                    explanations.append(explanation)
-                    logger.info(f"   📧 BAD SENDER → {explanation['detail']} [+{weight:.2f}]")
+                    })
+                    logger.info(f"   📧 BAD SENDER → {domain} [+0.20]")
 
-        # ══════════════════════════════════════════════════════════════════
-        # ── 7. OmniHeuristics: Message-specific scan ─────────────────────
-        # ══════════════════════════════════════════════════════════════════
+        # ── 7. OmniHeuristics: Message-specific scan
         if content_type == "message":
             msg_hits = [kw for kw in self.MESSAGE_THREAT_KEYWORDS if kw in searchable]
             if msg_hits:
                 weight = min(0.40, len(msg_hits) * 0.15)
-                explanation = {
+                explanations.append({
                     "indicator": "Messaging threat pattern",
                     "weight": round(weight, 2),
                     "detail": f"Detected {len(msg_hits)} messaging threat(s): {msg_hits}",
-                }
-                explanations.append(explanation)
-                logger.info(f"   💬 MSG THREAT → {explanation['detail']} [+{weight:.2f}]")
+                })
+                logger.info(f"   💬 MSG THREAT → {len(msg_hits)} hits [+{weight:.2f}]")
 
-        # ── Aggregate score ──────────────────────────────────────────────
+        # ── Aggregate heuristic score
         threat_score = min(1.0, round(sum(e["weight"] for e in explanations), 2))
 
         if threat_score >= 0.7:
@@ -214,15 +185,103 @@ class SentinelBrain:
             verdict = "Safe"
 
         logger.info("─" * 60)
-        logger.info(f"   📊 SCORE   : {threat_score}")
-        logger.info(f"   🏷️  VERDICT : {verdict}")
-        logger.info(f"   📝 FACTORS : {len(explanations)}")
+        logger.info(f"   📊 HEURISTIC SCORE : {threat_score}")
+        logger.info(f"   🏷️  VERDICT         : {verdict}")
         logger.info("═" * 60)
 
         return {
             "threat_score": threat_score,
             "verdict": verdict,
             "explanations": explanations,
+        }
+
+    # ══════════════════════════════════════════════════════════════════════
+    # ── Phase 6: Hybrid Analysis (Heuristic × 0.3 + ML × 0.7) ───────────
+    # ══════════════════════════════════════════════════════════════════════
+
+    def hybrid_analyze(self, content: str, model_pipeline,
+                       content_type: str = "text",
+                       sender: str = None, subject: str = None) -> dict:
+        """
+        Hybrid threat analysis combining heuristic rules with BERT-tiny ML.
+
+        Scoring formula:
+            final_score = (heuristic_score × 0.3) + (ml_confidence × 0.7)
+
+        Args:
+            content: Raw text to analyze.
+            model_pipeline: The HuggingFace text-classification pipeline.
+            content_type: One of text, url, email, message.
+            sender: Optional sender.
+            subject: Optional email subject.
+
+        Returns:
+            dict with: threat_score, verdict, explanations[], ml_confidence
+        """
+        # ── Step 1: Run full heuristic analysis (untouched)
+        heuristic_result = self.analyze_content(
+            content=content,
+            content_type=content_type,
+            sender=sender,
+            subject=subject,
+        )
+        heuristic_score = heuristic_result["threat_score"]
+        explanations = heuristic_result["explanations"]
+
+        # ── Step 2: Run BERT-tiny ML classification
+        ml_confidence = 0.0
+        try:
+            # Truncate for the model (BERT-tiny has 512 token limit)
+            ml_input = content[:512]
+            prediction = model_pipeline.predict(ml_input)
+
+            # The model returns: {"label": "LABEL_0" (ham) or "LABEL_1" (spam), "score": float}
+            if prediction:
+                label = prediction["label"]
+                score = prediction["score"]
+
+                # LABEL_1 = spam/threat, LABEL_0 = ham/safe
+                if label == "LABEL_1":
+                    ml_confidence = round(score, 4)
+                else:
+                    ml_confidence = round(1.0 - score, 4)
+
+                explanations.append({
+                    "indicator": "Semantic analysis (BERT-tiny)",
+                    "weight": round(ml_confidence * 0.7, 2),
+                    "detail": f"ML model classified content as {'spam/threat' if label == 'LABEL_1' else 'safe'} "
+                              f"with {score:.1%} confidence. Raw label: {label}",
+                })
+
+            logger.info(f"   🤖 ML CONFIDENCE : {ml_confidence:.4f}")
+
+        except Exception as e:
+            logger.warning(f"   ⚠️ ML pipeline failed (using heuristic-only): {e}")
+            ml_confidence = 0.0
+
+        # ── Step 3: Compute hybrid weighted score
+        final_score = min(1.0, round((heuristic_score * 0.3) + (ml_confidence * 0.7), 2))
+
+        if final_score >= 0.7:
+            verdict = "Malicious"
+        elif final_score >= 0.35:
+            verdict = "Suspicious"
+        else:
+            verdict = "Safe"
+
+        logger.info("═" * 60)
+        logger.info(f"   🧬 HYBRID SCORING")
+        logger.info(f"      Heuristic : {heuristic_score} × 0.3 = {heuristic_score * 0.3:.2f}")
+        logger.info(f"      ML        : {ml_confidence} × 0.7 = {ml_confidence * 0.7:.2f}")
+        logger.info(f"      FINAL     : {final_score}")
+        logger.info(f"      VERDICT   : {verdict}")
+        logger.info("═" * 60)
+
+        return {
+            "threat_score": final_score,
+            "verdict": verdict,
+            "explanations": explanations,
+            "ml_confidence": ml_confidence,
         }
 
 

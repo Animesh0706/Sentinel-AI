@@ -12,6 +12,8 @@ export const mockHistory = [
     content_type: "email",
     threat_score: 0.85,
     verdict: "Malicious",
+    ml_confidence: 0.92,
+    integrity_hash: "abc123",
     explanations: [
       { indicator: "Urgency language", weight: 0.35, detail: "Detected 2 urgency trigger(s): ['urgent', 'suspended']" },
       { indicator: "Social engineering", weight: 0.10, detail: "Detected 1 manipulation phrase(s): ['click here']" },
@@ -24,6 +26,8 @@ export const mockHistory = [
     content_type: "text",
     threat_score: 0.15,
     verdict: "Safe",
+    ml_confidence: 0.05,
+    integrity_hash: "def456",
     explanations: [
       { indicator: "Obfuscation technique", weight: 0.15, detail: "URL shortener detected" }
     ]
@@ -34,6 +38,8 @@ export const mockHistory = [
     content_type: "text",
     threat_score: 0.45,
     verdict: "Suspicious",
+    ml_confidence: 0.55,
+    integrity_hash: "ghi789",
     explanations: [
       { indicator: "Misinformation language", weight: 0.25, detail: "Detected 2 misinformation cue(s): ['shocking truth', 'exposed']" },
       { indicator: "Urgency language", weight: 0.20, detail: "Detected 2 urgency trigger(s): ['act now']" }
@@ -57,5 +63,15 @@ export const fetchScanHistory = async () => {
   } catch (err) {
     console.warn("⚠️ Could not fetch scan history, using mock data:", err.message);
     return mockHistory;
+  }
+};
+
+export const verifyIntegrity = async (scanId) => {
+  try {
+    const res = await api.get(`/integrity/verify/${scanId}`);
+    return res.data;
+  } catch (err) {
+    console.warn("⚠️ Integrity check failed:", err.message);
+    return { is_tampered: null, status: "Check failed" };
   }
 };

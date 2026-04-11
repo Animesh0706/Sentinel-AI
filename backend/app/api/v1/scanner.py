@@ -1,5 +1,6 @@
 """
 Sentinel-AI — Scanner API (v1)
+Phase 6: Hybrid AI scoring + CIA Integrity hashing.
 POST /scan endpoint with Redis caching and MongoDB persistence.
 """
 
@@ -11,9 +12,10 @@ from datetime import datetime, timezone, timedelta
 IST = timezone(timedelta(hours=5, minutes=30))
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.core.ai_engine import sentinel_brain
+from app.core.security import calculate_integrity_hash
 from app.db.mongodb import mongodb
 from app.db.redis_cache import redis_cache
 from app.models.threat import ScanRequest, ScanResponse, ThreatExplanation
@@ -31,16 +33,17 @@ def _content_hash(content: str) -> str:
 
 
 @router.post("", response_model=ScanResponse)
-async def scan_content(request: ScanRequest):
+async def scan_content(request: ScanRequest, req: Request):
     """
     Analyze content for phishing, misinformation, and other threats.
 
     Flow:
       1. Check Redis cache for a previous result.
-      2. If miss → run SentinelBrain analysis.
-      3. Store result in MongoDB (threat_events collection).
-      4. Cache result in Redis.
-      5. Return XAI-enriched ScanResponse.
+      2. If miss → run SentinelBrain hybrid analysis (heuristic + ML).
+      3. Compute integrity hash (CIA).
+      4. Store result in MongoDB (threat_events collection).
+      5. Cache result in Redis.
+      6. Return XAI-enriched ScanResponse.
     """
     content_key = _content_hash(request.content)
     scan_id = str(uuid4())
@@ -61,22 +64,46 @@ async def scan_content(request: ScanRequest):
         cached_data["cached"] = True
         return ScanResponse(**cached_data)
 
-    logger.info(f"💨 Cache MISS — invoking SentinelBrain...")
+    logger.info(f"💨 Cache MISS — invoking SentinelBrain hybrid engine...")
 
-    # ── 2. AI analysis ───────────────────────────────────────────────────
+    # ── 2. Hybrid AI analysis (heuristic × 0.3 + ML × 0.7) ──────────────
+    model_pipeline = getattr(req.app.state, "model_pipeline", None)
+    ml_confidence = None
+
     try:
-        result = sentinel_brain.analyze_content(
-            content=request.content,
-            content_type=request.content_type,
-            sender=request.sender,
-            subject=request.subject,
-        )
+        if model_pipeline:
+            result = sentinel_brain.hybrid_analyze(
+                content=request.content,
+                model_pipeline=model_pipeline,
+                content_type=request.content_type,
+                sender=request.sender,
+                subject=request.subject,
+            )
+            ml_confidence = result.get("ml_confidence")
+        else:
+            # Fallback: heuristic-only if model didn't load
+            logger.warning("⚠️ ML model not available — using heuristic-only scoring.")
+            result = sentinel_brain.analyze_content(
+                content=request.content,
+                content_type=request.content_type,
+                sender=request.sender,
+                subject=request.subject,
+            )
     except Exception as e:
         logger.error(f"❌ SentinelBrain failed: {e}")
         raise HTTPException(status_code=500, detail="AI analysis engine error.")
 
     # ── 3. Build response ────────────────────────────────────────────────
     now = datetime.now(IST)
+    now_str = str(now)  # exact string used for hashing
+
+    # CIA Integrity: compute hash over content + timestamp + verdict
+    integrity_hash = calculate_integrity_hash(
+        content=content_key,
+        timestamp=now_str,
+        verdict=result["verdict"],
+    )
+
     response = ScanResponse(
         scan_id=scan_id,
         threat_score=result["threat_score"],
@@ -87,6 +114,8 @@ async def scan_content(request: ScanRequest):
         scanned_at=now,
         sender=request.sender,
         subject=request.subject,
+        ml_confidence=ml_confidence,
+        integrity_hash=integrity_hash,
     )
 
     # ── 4. Persist to MongoDB ────────────────────────────────────────────
@@ -97,6 +126,9 @@ async def scan_content(request: ScanRequest):
         doc["sender"] = request.sender
         doc["subject"] = request.subject
         doc["scanned_at"] = now
+        doc["integrity_hash"] = integrity_hash
+        doc["integrity_timestamp"] = now_str  # exact string for hash reproduction
+        doc["ml_confidence"] = ml_confidence
 
         db = mongodb.database
         insert_result = await db.threat_events.insert_one(doc)
@@ -116,7 +148,7 @@ async def scan_content(request: ScanRequest):
     except Exception as e:
         logger.warning(f"⚠️  Redis write failed (non-fatal): {e}")
 
-    logger.info(f"✅ Scan complete — verdict={response.verdict}, score={response.threat_score}")
+    logger.info(f"✅ Scan complete — verdict={response.verdict}, score={response.threat_score}, ml={ml_confidence}")
     return response
 
 
