@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, Activity, ShieldCheck, ShieldAlert, Shield, CheckCircle2, Mail, MessageSquare, Globe, Fingerprint } from 'lucide-react';
 import Alerts from './Alerts';
+import SentinelChat from './SentinelChat';
 import { checkHealth, fetchScanHistory, verifyIntegrity } from '../services/api';
 
 const Sparkline = ({ color }) => (
@@ -21,6 +22,7 @@ const Dashboard = () => {
   const [selectedScan, setSelectedScan] = useState(null);
   const [health, setHealth] = useState({ status: "Connecting..." });
   const [integrityStatus, setIntegrityStatus] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -118,6 +120,7 @@ const Dashboard = () => {
                   onClick={() => {
                     setSelectedScan(scan);
                     setIntegrityStatus(null);
+                    setChatOpen(false);
                     if (scan.integrity_hash) {
                       verifyIntegrity(scan.scan_id).then(setIntegrityStatus);
                     }
@@ -173,8 +176,21 @@ const Dashboard = () => {
             </h2>
           </div>
           
-          <div className="flex-1 min-h-0">
-             <Alerts alert={selectedScan} integrityStatus={integrityStatus} />
+          <div className="flex-1 min-h-0 relative">
+            {chatOpen ? (
+              <SentinelChat 
+                scanId={selectedScan?.scan_id}
+                verdict={selectedScan?.verdict}
+                threatScore={selectedScan?.threat_score}
+                onClose={() => setChatOpen(false)}
+              />
+            ) : (
+              <Alerts 
+                alert={selectedScan} 
+                integrityStatus={integrityStatus} 
+                onOpenChat={() => setChatOpen(true)}
+              />
+            )}
           </div>
         </div>
       </div>

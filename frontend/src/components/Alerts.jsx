@@ -1,7 +1,7 @@
 import React from 'react';
-import { Shield, ShieldAlert, ShieldCheck, Brain, Fingerprint, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Shield, ShieldAlert, ShieldCheck, Brain, Fingerprint, CheckCircle2, AlertTriangle, Bot } from 'lucide-react';
 
-const Alerts = ({ alert, integrityStatus }) => {
+const Alerts = ({ alert, integrityStatus, onOpenChat }) => {
   if (!alert) return null;
 
   const isMalicious = alert.verdict === 'Malicious';
@@ -153,8 +153,17 @@ const Alerts = ({ alert, integrityStatus }) => {
               <span className={`font-bold tracking-widest text-base uppercase ${themeColor}`}>{alert.verdict}</span>
             </div>
           </div>
-          <div className={`w-9 h-9 rounded border ${isMalicious ? 'border-neon-red/30 text-neon-red' : isSuspicious ? 'border-neon-yellow/30 text-neon-yellow' : 'border-neon-green/30 text-neon-green'} flex items-center justify-center bg-black/20 relative z-10`}>
-             {isMalicious ? <ShieldAlert size={18} /> : isSuspicious ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
+          <div className="flex items-center gap-2 relative z-10">
+            <button
+              onClick={onOpenChat}
+              className="mr-2 px-3 py-1.5 rounded-lg border border-neon-cyan/30 text-[10px] font-mono text-neon-cyan hover:bg-neon-cyan/10 transition-colors flex items-center gap-1.5"
+            >
+              <Bot size={12} />
+              ASK SENTINEL
+            </button>
+            <div className={`w-9 h-9 rounded border ${isMalicious ? 'border-neon-red/30 text-neon-red' : isSuspicious ? 'border-neon-yellow/30 text-neon-yellow' : 'border-neon-green/30 text-neon-green'} flex items-center justify-center bg-black/20`}>
+               {isMalicious ? <ShieldAlert size={18} /> : isSuspicious ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
+            </div>
           </div>
           
           {isMalicious && (

@@ -75,3 +75,16 @@ export const verifyIntegrity = async (scanId) => {
     return { is_tampered: null, status: "Check failed" };
   }
 };
+
+export const sendChatMessage = async (scanId, message) => {
+  try {
+    const res = await api.post('/chat', {
+      scan_id: scanId,
+      user_message: message,
+    });
+    return res.data;
+  } catch (err) {
+    console.error("⚠️ Chat request failed:", err.message);
+    return { reply: "I'm unable to respond right now. Please check if the backend is running and GROQ_API_KEY is configured.", scan_id: scanId };
+  }
+};

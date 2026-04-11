@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     MONGODB_URL: str = "mongodb://localhost:27017"
     REDIS_URL: str = "redis://localhost:6379"
+    GROQ_API_KEY: str = ""
 
     APP_NAME: str = "Sentinel-AI"
     DEBUG: bool = True
