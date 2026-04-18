@@ -41,7 +41,14 @@ if (document.body) {
 // ── Main Scanner Runner ─────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════
 
-async function runScanner(currentUrl) {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.action === "FORCE_SCAN") {
+    console.log("[Sentinel-AI] ⚡ Force scan requested by user.");
+    runScanner(window.location.href, true);
+  }
+});
+
+async function runScanner(currentUrl, force = false) {
   if (!chrome.runtime?.id) return;
 
   const hostname = window.location.hostname;
@@ -50,16 +57,18 @@ async function runScanner(currentUrl) {
   if (!currentUrl.startsWith("http") || hostname === "localhost" || hostname === "127.0.0.1") return;
 
   // ── Cooldown check
-  try {
-    const stored = await chrome.storage.local.get("sentinel_last_scan");
-    const last = stored.sentinel_last_scan || {};
+  if (!force) {
+    try {
+      const stored = await chrome.storage.local.get("sentinel_last_scan");
+      const last = stored.sentinel_last_scan || {};
 
-    if (last.url === currentUrl && Date.now() - last.timestamp < COOLDOWN_MS) {
-      console.log("[Sentinel-AI] Cooldown active — skipping scan for:", currentUrl);
-      return;
+      if (last.url === currentUrl && Date.now() - last.timestamp < COOLDOWN_MS) {
+        console.log("[Sentinel-AI] Cooldown active — skipping scan for:", currentUrl);
+        return;
+      }
+    } catch (e) {
+      // Ignore storage errors safely
     }
-  } catch (e) {
-    // Ignore storage errors safely
   }
 
   // ── Context Detection & Extraction
@@ -144,8 +153,8 @@ async function detectContext(hostname, url) {
 // ── Gmail ───────────────────────────────────────────────────────────────
 async function scrapeGmail(url) {
   try {
-    // Wait up to 3 seconds for the main email text container to appear
-    const bodyEl = await waitForElement("div.a3s.aiL");
+    // Wait up to 10 seconds for the main email text container to appear
+    const bodyEl = await waitForElement("div.a3s.aiL", 10000);
     
     if (!bodyEl) {
       console.log("[Sentinel-AI] Gmail view detected but no open email parsed in time. Falling back.");
@@ -185,16 +194,30 @@ async function scrapeGmail(url) {
 // ── WhatsApp Web ────────────────────────────────────────────────────────
 async function scrapeWhatsApp(url) {
   try {
-    // Wait up to 3 seconds for at least one message bubble
-    const msgEl = await waitForElement(".message-in");
+    // Wait up to 15 seconds for at least one message bubble to load (WhatsApp is slow)
+    // We try multiple generic selectors in case Meta obfuscates .message-in
+    const msgEl = await waitForElement(".message-in, div[data-id], ._amk4", 15000);
 
     if (!msgEl) {
       console.log("[Sentinel-AI] WhatsApp Web but no messages loaded yet. Falling back.");
       return scrapeGenericPage(url);
     }
 
-    const incomingMessages = document.querySelectorAll(".message-in");
-    const lastMessage = incomingMessages[incomingMessages.length - 1];
+    // Try finding the last incoming message
+    let incomingMessages = document.querySelectorAll(".message-in");
+    let lastMessage = null;
+    
+    if (incomingMessages.length > 0) {
+      lastMessage = incomingMessages[incomingMessages.length - 1];
+    } else {
+      // Obfuscated fallback: just grab the last message in the main panel
+      const allMessages = document.querySelectorAll("div[data-id]");
+      if (allMessages.length > 0) {
+        lastMessage = allMessages[allMessages.length - 1];
+      }
+    }
+
+    if (!lastMessage) return scrapeGenericPage(url);
 
     const textEl = lastMessage.querySelector("span.selectable-text")
                 || lastMessage.querySelector("._ao3e")

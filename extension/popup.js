@@ -5,6 +5,15 @@
 
 document.addEventListener("DOMContentLoaded", async () => {
   const el = document.getElementById("lastResult");
+  const scanBtn = document.getElementById("scanBtn");
+
+  scanBtn.addEventListener("click", () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id, { action: "FORCE_SCAN" });
+      scanBtn.textContent = "Scanning...";
+      setTimeout(() => { scanBtn.textContent = "FORCE SCAN PAGE"; }, 2000);
+    });
+  });
 
   try {
     const stored = await chrome.storage.local.get("sentinel_last_result");

@@ -92,6 +92,30 @@
     .suspicious { color: #ffcc00; }
     .malicious { color: #ff3366; text-shadow: 0 0 6px rgba(255, 51, 102, 0.5); }
 
+    .scan-btn {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background: #00f0ff;
+      color: #090a0f;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      cursor: pointer;
+      margin-bottom: 14px;
+      transition: all 0.2s;
+    }
+
+    .scan-btn:hover {
+      background: #00e0ef;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+    }
+    .scan-btn:active {
+      transform: scale(0.98);
+    }
+
     .dashboard-link {
       display: block;
       text-align: center;
@@ -125,6 +149,8 @@
     <div class="dot"></div>
     <span>MONITORING ACTIVE</span>
   </div>
+
+  <button id="scanBtn" class="scan-btn">FORCE SCAN PAGE</button>
 
   <div class="result" id="lastResult">
     Waiting for scan data...

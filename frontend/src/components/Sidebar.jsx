@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Network, Database, Shield, LayoutDashboard, Sun, Settings, Hexagon, Activity } from 'lucide-react';
-import { checkHealth } from '../services/api';
+import { Network, Database, Shield, LayoutDashboard, Sun, Settings, Hexagon, Activity, LogOut } from 'lucide-react';
+import { checkHealth, logout } from '../services/api';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const [health, setHealth] = useState({ status: "Connecting...", mongodb: "disconnected", redis: "disconnected", ai_engine: "offline" });
@@ -107,6 +107,15 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white transition-colors">
               <Settings size={18} />
               Settings
+            </button>
+          </li>
+          <li>
+            <button 
+              onClick={logout}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-neon-red/70 hover:text-neon-red transition-colors"
+            >
+              <LogOut size={18} />
+              Disconnect
             </button>
           </li>
         </ul>

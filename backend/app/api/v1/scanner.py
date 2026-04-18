@@ -14,7 +14,7 @@ from datetime import datetime, timezone, timedelta
 IST = timezone(timedelta(hours=5, minutes=30))
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 
 from app.core.ai_engine import sentinel_brain
 from app.core.security import calculate_integrity_hash
@@ -22,6 +22,8 @@ from app.core.threat_intel import check_google_safe_browsing, check_virustotal
 from app.db.mongodb import mongodb
 from app.db.redis_cache import redis_cache
 from app.models.threat import ScanRequest, ScanResponse, ThreatExplanation
+from app.core.auth import get_current_user, get_current_user_optional
+from app.models.user import UserResponse
 
 logger = logging.getLogger("sentinel.scanner")
 
@@ -36,7 +38,7 @@ def _content_hash(content: str) -> str:
 
 
 @router.post("", response_model=ScanResponse)
-async def scan_content(request: ScanRequest, req: Request):
+async def scan_content(request: ScanRequest, req: Request, current_user: UserResponse | None = Depends(get_current_user_optional)):
     """
     Analyze content for phishing, misinformation, and other threats.
 
@@ -173,6 +175,8 @@ async def scan_content(request: ScanRequest, req: Request):
         doc["integrity_hash"] = integrity_hash
         doc["integrity_timestamp"] = now_str  # exact string for hash reproduction
         doc["ml_confidence"] = ml_confidence
+        if current_user:
+            doc["user_id"] = current_user.id
 
         db = mongodb.database
         insert_result = await db.threat_events.insert_one(doc)
@@ -197,7 +201,7 @@ async def scan_content(request: ScanRequest, req: Request):
 
 
 @router.get("s", response_model=list[ScanResponse], tags=["Scanner"])
-async def get_scan_history():
+async def get_scan_history(current_user: UserResponse = Depends(get_current_user)):
     """
     Fetch the last 20 scans from MongoDB Atlas, sorted newest first.
     """
@@ -205,7 +209,7 @@ async def get_scan_history():
     try:
         db = mongodb.database
         cursor = db.threat_events.find(
-            {},
+            {"$or": [{"user_id": current_user.id}, {"user_id": {"$exists": False}}]},
             {"_id": 0},  # Exclude Mongo's _id field
         ).sort("scanned_at", -1).limit(20)
 

@@ -19,6 +19,8 @@ class MongoDB:
         self.client = AsyncIOMotorClient(settings.MONGODB_URL, tlsCAFile=certifi.where())
         # Force a connection attempt so we fail fast on bad URIs
         await self.client.admin.command("ping")
+        # Create indexes
+        await self.client[self.db_name].users.create_index("username", unique=True)
         print(f"[✓] MongoDB connected — cluster: {settings.MONGODB_URL[:30]}...")
 
     async def disconnect(self) -> None:

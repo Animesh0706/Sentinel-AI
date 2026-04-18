@@ -8,5 +8,7 @@ python-dotenv
 certifi
 transformers
 onnxruntime
-passlib[bcrypt]
+bcrypt
+PyJWT
+email-validator
 groq

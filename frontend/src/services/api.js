@@ -4,6 +4,37 @@ const api = axios.create({
   baseURL: 'http://localhost:8000/api/v1',
 });
 
+// Add Authorization interceptor
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const login = async (username, password) => {
+  const formData = new URLSearchParams();
+  formData.append('username', username);
+  formData.append('password', password);
+  
+  const res = await api.post('/auth/login', formData, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+  });
+  localStorage.setItem('token', res.data.access_token);
+  return res.data;
+};
+
+export const signup = async (username, password) => {
+  const res = await api.post('/auth/signup', { username, password });
+  return res.data;
+};
+
+export const logout = () => {
+  localStorage.removeItem('token');
+  window.location.reload();
+};
+
 // Mock Initial History in case endpoint doesn't exist
 export const mockHistory = [
   {

@@ -14,6 +14,7 @@ from app.db.redis_cache import redis_cache
 from app.api.v1.scanner import router as scanner_router
 from app.api.v1.integrity import router as integrity_router
 from app.api.v1.chatbot import router as chatbot_router
+from app.api.v1.auth import router as auth_router
 
 # ── Logging config ───────────────────────────────────────────────────────
 logging.basicConfig(
@@ -75,6 +76,7 @@ app.add_middleware(
 app.include_router(scanner_router, prefix="/api/v1")
 app.include_router(integrity_router, prefix="/api/v1")
 app.include_router(chatbot_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["System"])
