@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/shield-alert.svg" alt="Sentinel-AI Logo" width="120" height="120" />
   
   # Sentinel-AI 🛡️
 
